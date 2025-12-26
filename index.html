@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coité Express - As Melhores Ofertas Da cidade</title>
+    <link rel="stylesheet" href="style2.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">
+                <i class="#"><img src="ce.jpg" width="150px" style="border-radius:100px;" alt="Coité Express Logo"></i>
+                Coité Express
+            </div>
+            
+            <nav class="nav-links">
+                <a href="#">Venda</a>
+                <a href="#">Ofertas</a>
+                <a href="#">Lojas</a>
+                <a href="#">transport</a>
+            </nav>
+            <div class="search-bar">
+                <div class="search-input-wrapper">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="search" placeholder="Buscar produtos...">
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="controls-bar">
+        <button id="filter-toggle" class="filter-toggle">
+            <i class="fas fa-filter"></i> Filtros
+        </button>
+        <div class="sort-container">
+            <label for="sort-select">Ordenar por:</label>
+            <select id="sort-select">
+                <option value="relevance">Relevância</option>
+                <option value="price-asc">Menor Preço</option>
+                <option value="price-desc">Maior Preço</option>
+                <option value="discount">Maior Desconto</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <main>
+        <aside class="filters" id="filters-panel">
+            <div class="filters-header">
+                <h3>Filtros</h3>
+                <button class="close-filters" id="close-filters">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="filter-section">
+                <h4>Lojas</h4>
+                <div class="filter-options">
+                    <label><input type="checkbox" value="todas"> Todas</label>
+                    <label><input type="checkbox" value="amazon"> Amazon</label>
+                    <label><input type="checkbox" value="americanas"> Americanas</label>
+                    <label><input type="checkbox" value="magazineluiza"> Magazine Luiza</label>
+                    <label><input type="checkbox" value="aliexpress"> AliExpress</label>
+                </div>
+            </div>
+            <div class="filter-section">
+                <h4>Categoria</h4>
+                <div class="filter-options">
+                    <label><input type="checkbox" value="eletronicos"> Eletrônicos</label>
+                    <label><input type="checkbox" value="casa"> Casa</label>
+                    <label><input type="checkbox" value="moda"> Moda</label>
+                    <label><input type="checkbox" value="beleza"> Beleza</label>
+                </div>
+            </div>
+            <div class="filter-section">
+                <h4>Faixa de Preço</h4>
+                <div class="filter-options">
+                    <label><input type="radio" name="price" value="0-50"> Até R$ 50</label>
+                    <label><input type="radio" name="price" value="50-100"> R$ 50 - R$ 100</label>
+                    <label><input type="radio" name="price" value="100-200"> R$ 100 - R$ 200</label>
+                    <label><input type="radio" name="price" value="200+"> Acima de R$ 200</label>
+                </div>
+            </div>
+        </aside>
+
+        <section class="products">
+            <div class="products-grid" id="products-container">
+                <!-- Produtos serão inseridos aqui via JavaScript -->
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Coité Express - Desenvolvimento Animawis</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
