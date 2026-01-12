@@ -1,6 +1,33 @@
 // Variável para armazenar produtos carregados da planilha
 let products = [];
 
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1UQKdwVzx5FQDiNB60wq0Pasj0oZUHeSzdOb0m1CaSWE/gviz/tq?tqx=out:json&gid=0';
+
+//Parse simples de CSV(assume separadpr "," e sem virgulas embutidas)
+
+function parseCSV(text) {
+    const lines = text.split(/\r?\n/).filter(1 => 1.trim());
+    if (lines.length === 0) return [];
+    const cols = line.split(',');
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = cols[i] ? cols[i].trim() : '');
+    return obj;
+}
+
+//Normaliza e mapeia campos conhecidos para formato para UI
+function parseGviz(text) {
+const start = text.indexOf('{')
+const end = text.lastIndexOf('}')
+if (start === -1 || end === -1) return [];
+const json = JSON.parse(text.slice(start, end + 1));
+const cols = json.table.cols.map(c => (c.label || c.id || '').toLowerCase());
+return json.table.rows.map(r =>{
+    const obj ={};
+    r.c.forEach((cel, i) => obj[cols[] || 'col${i}] = cell && cell.v != null ? cell.v : '');
+    retorn obj;
+});
+}
+}
 // Função para carregar produtos da planilha online
 async function fetchProductsFromSheet() {
     try {
@@ -196,4 +223,5 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+
 });
