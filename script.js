@@ -1,53 +1,88 @@
 // Variável para armazenar produtos carregados da planilha
 let products = [];
 
+// Cole aqui a URL pública da sua planilha.
+// Aceita: 1) URL CSV de "Publicar na web" (export?format=csv) ou
+// 2) endpoint gviz JSON: https://docs.google.com/spreadsheets/d/<ID>/gviz/tq?tqx=out:json&gid=0
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1UQKdwVzx5FQDiNB60wq0Pasj0oZUHeSzdOb0m1CaSWE/gviz/tq?tqx=out:json&gid=0';
 
-//Parse simples de CSV(assume separadpr "," e sem virgulas embutidas)
-
+// Parse simples de CSV (assume separador "," e sem vírgulas embutidas)
 function parseCSV(text) {
-    const lines = text.split(/\r?\n/).filter(1 => 1.trim());
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
     if (lines.length === 0) return [];
-    const cols = line.split(',');
-    const obj = {};
-    headers.forEach((h, i) => obj[h] = cols[i] ? cols[i].trim() : '');
-    return obj;
+    const headers = lines.shift().split(',').map(h => h.trim().toLowerCase());
+    return lines.map(line => {
+        const cols = line.split(',');
+        const obj = {};
+        headers.forEach((h, i) => obj[h] = cols[i] ? cols[i].trim() : '');
+        return obj;
+    });
 }
 
-//Normaliza e mapeia campos conhecidos para formato para UI
+// Parse do formato gviz (Google Visualization) retornando array de objetos
 function parseGviz(text) {
-const start = text.indexOf('{')
-const end = text.lastIndexOf('}')
-if (start === -1 || end === -1) return [];
-const json = JSON.parse(text.slice(start, end + 1));
-const cols = json.table.cols.map(c => (c.label || c.id || '').toLowerCase());
-return json.table.rows.map(r =>{
-    const obj ={};
-    r.c.forEach((cel, i) => obj[cols[] || 'col${i}] = cell && cell.v != null ? cell.v : '');
-    retorn obj;
-});
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start === -1 || end === -1) return [];
+    const json = JSON.parse(text.slice(start, end + 1));
+    const cols = json.table.cols.map(c => (c.label || c.id || '').toLowerCase());
+    return json.table.rows.map(r => {
+        const obj = {};
+        r.c.forEach((cell, i) => obj[cols[i] || `col${i}`] = cell && cell.v != null ? cell.v : '');
+        return obj;
+    });
 }
+
+// Normaliza e mapeia campos conhecidos para o formato usado pela UI
+function mapSheetItem(item, index) {
+    const get = (...keys) => {
+        for (const k of keys) {
+            if (k in item && item[k] !== '') return item[k];
+        }
+        return '';
+    };
+
+    const rawPrice = get('price', 'preço', 'preco', 'valor');
+    const rawOriginal = get('originalprice', 'preço_original', 'preco_original', 'precooriginal');
+    const discountRaw = get('discount', 'desconto');
+
+    return {
+        id: get('id') || index + 1,
+        title: get('title', 'produto', 'nome') || '',
+        price: parseFloat(String(rawPrice).replace(',', '.')) || 0,
+        originalPrice: parseFloat(String(rawOriginal).replace(',', '.')) || null,
+        store: get('store', 'loja') || 'Loja',
+        category: (get('category', 'categoria') || 'geral').toLowerCase(),
+        image: get('image', 'imagem') || 'https://via.placeholder.com/300',
+        affiliateLink: get('affiliateLink', 'link', 'url') || '#',
+        discount: parseInt(discountRaw) || 0
+    };
 }
-// Função para carregar produtos da planilha online
+
+// Função para carregar produtos da planilha online (CSV ou gviz JSON)
 async function fetchProductsFromSheet() {
     try {
         showLoading();
-        const response = await fetch('https://sheetdb.io/api/v1/i0izzxhea9kft');
-        const data = await response.json();
-        
-        // Mapear os dados da planilha para o formato esperado
-        products = data.map((item, index) => ({
-            id: item.id || index + 1,
-            title: item.title || item.produto || '',
-            price: parseFloat(item.price || item.preço || 0),
-            originalPrice: parseFloat(item.originalPrice || item.preço_original || item.price),
-            store: item.store || item.loja || 'Loja',
-            category: (item.category || item.categoria || 'geral').toLowerCase(),
-            image: item.image || item.imagem || 'https://via.placeholder.com/300',
-            affiliateLink: item.affiliateLink || item.link || '#',
-            discount: parseInt(item.discount || item.desconto || 0)
-        }));
-        
+        if (!SHEET_URL) {
+            console.error('SHEET_URL não está definida');
+            hideLoading();
+            return;
+        }
+
+        const res = await fetch(SHEET_URL);
+        const contentType = res.headers.get('content-type') || '';
+        const text = await res.text();
+
+        let rows = [];
+        if (contentType.includes('json') || SHEET_URL.includes('gviz') || SHEET_URL.includes('tqx=out:json')) {
+            rows = parseGviz(text);
+        } else {
+            // assume CSV
+            rows = parseCSV(text);
+        }
+
+        products = rows.map((item, index) => mapSheetItem(item, index));
+
         renderProducts();
         hideLoading();
     } catch (error) {
@@ -95,20 +130,20 @@ function renderProducts(productsToRender = products) {
 
 // Função para filtrar produtos
 function filterProducts() {
-    const selectedStores = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))
-        .filter(checkbox => ['amazon', 'americanas', 'magazineluiza', 'aliexpress'].includes(checkbox.value))
-        .map(checkbox => checkbox.value);
+    // Seleciona checkboxes da seção "Lojas" (primeira .filter-section)
+    const storeCheckboxes = Array.from(document.querySelectorAll('.filters .filter-section:nth-of-type(1) .filter-options input[type="checkbox"]'));
+    const selectedStores = storeCheckboxes.filter(cb => cb.checked).map(cb => cb.value.toLowerCase());
 
-    const selectedCategories = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))
-        .filter(checkbox => ['eletronicos', 'casa', 'moda', 'beleza'].includes(checkbox.value))
-        .map(checkbox => checkbox.value);
+    // Seleciona checkboxes da seção "Categoria" (segunda .filter-section)
+    const categoryCheckboxes = Array.from(document.querySelectorAll('.filters .filter-section:nth-of-type(2) .filter-options input[type="checkbox"]'));
+    const selectedCategories = categoryCheckboxes.filter(cb => cb.checked).map(cb => cb.value.toLowerCase());
 
     const selectedPrice = document.querySelector('input[name="price"]:checked')?.value;
 
     let filteredProducts = products;
 
     // Filtrar por loja
-    if (selectedStores.length > 0) {
+    if (selectedStores.length > 0 && !selectedStores.includes('todas')) {
         filteredProducts = filteredProducts.filter(product => 
             selectedStores.includes(product.store.toLowerCase()));
     }
@@ -223,5 +258,22 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+});
 
+// Seleciona o botão e o menu
+const hamburgerToggle = document.getElementById('hamburger-Toggle');
+const navLinks = document.getElementById('nav-Links');
+
+// Adiciona um listener de evento de clique ao botão
+hamburgerToggle.addEventListener('click', () => {
+    //alterar display em none ou flex do menu hamburguer
+    if (navLinks.style.display === 'none' || navLinks.style.display === '') {
+        navLinks.style.display = 'flex';
+    } else {
+        navLinks.style.display = 'none';
+    }
+
+    // Alterna a classe 'active' no botão e no menu
+    hamburgerToggle.classList.toggle('active');
+    navLinks.classList.toggle('active');
 });
