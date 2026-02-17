@@ -17,12 +17,12 @@
             </div>
            
             
-            <nav class="nav-links" id="nav-links">
+            <div class="nav-links" id="nav-links">
                 <a href="#">Venda</a>
                 <a href="#">Ofertas</a>
                 <a href="#">Lojas</a>
-                <a href="#">transport</a>
-            </nav>
+                <a href="#">Transport</a>
+            </div>
 
             
             <div class="search-bar">
@@ -30,10 +30,15 @@
                     <i class="fas fa-search search-icon"></i>
                     <input type="text" id="search" placeholder="Buscar produtos...">
                 </div>
-            <button class="hamburguer" id="hamburger-Toggle" aria-label="Menu">
-                <span class="bar"></span>
-                <span class="bar"></span>
-                <span class="bar"></span>
+            <button class="hamburguer" id="hamburger-Toggle" aria-label="Menu" aria-expanded="false">
+                <!-- SVG hamburger that animates to X when button has .active class -->
+                <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" focusable="false">
+                    <g stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none">
+                        <line class="line line1" x1="3" y1="6" x2="21" y2="6"></line>
+                        <line class="line line2" x1="3" y1="12" x2="21" y2="12"></line>
+                        <line class="line line3" x1="3" y1="18" x2="21" y2="18"></line>
+                    </g>
+                </svg>
             </button>
 
             </div>

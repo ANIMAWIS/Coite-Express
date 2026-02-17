@@ -1,60 +1,41 @@
-Relatório da integração com a API SheetDB
-Data: 26/12/2025
+Relatório: substituição de SheetDB por fetch direto da planilha pública
+Data: 01/01/2026
 
-Resumo
-- Integração implementada em `script.js` para carregar produtos dinamicamente a partir da API do SheetDB (endpoint: https://sheetdb.io/api/v1/i0izzxhea9kft).
-- Substituição dos dados hardcoded por fetch que popula a variável `products`.
-- Carregamento automático ao evento `DOMContentLoaded` via chamada a `fetchProductsFromSheet()`.
+Resumo das mudanças
+- Removida dependência do endpoint SheetDB; agora o `script.js` suporta fetch direto de uma planilha pública Google Sheets (via endpoint gviz JSON) ou CSV público.
+- Adicionado `SHEET_URL` (constante) apontando para o endpoint gviz: `https://docs.google.com/spreadsheets/d/<ID>/gviz/tq?tqx=out:json&gid=0`.
 
-Arquivos alterados
-- script.js: substituição do array estático `products` por `let products = []` e adição da função `fetchProductsFromSheet()`.
-- A chamada inicial `renderProducts()` foi trocada por `fetchProductsFromSheet()` dentro do listener `DOMContentLoaded`.
+Principais alterações em `script.js`
+- Adicionadas funções `parseGviz(text)` e `parseCSV(text)` para interpretar respostas do Google Sheets (gviz JSON) ou CSV publicado.
+- Adicionada função `mapSheetItem(item, index)` que normaliza campos da planilha para o formato usado pela UI (`id`, `title`, `price`, `originalPrice`, `store`, `category`, `image`, `affiliateLink`, `discount`).
+- Ajuste nos filtros: seleção de checkboxes para `Lojas` e `Categoria` foi tornada mais precisa e o valor `todas` é tratado como sem filtro.
+- Corrigido `console.error` quando `SHEET_URL` não está definida.
 
-O que faz o código novo
-- Faz um fetch GET para o endpoint do SheetDB.
-- Converte o JSON retornado em objetos no formato esperado pela aplicação.
-- Mapeamento flexível: a função tenta ler nomes de colunas em inglês e português (ex.: `title` ou `produto`, `price` ou `preço`, `store` ou `loja`, etc.).
-- Preenche campos padrão quando a célula estiver vazia (imagem placeholder, link '#', preço 0, categoria 'geral').
-- Chama `renderProducts()` após popular `products` para re-renderizar a lista.
+Como usar
+1. Publique sua planilha como pública (ou use a opção "Publicar na web" → CSV, ou use o endpoint gviz JSON como acima).
+2. No arquivo `script.js`, ajuste a constante `SHEET_URL` para a URL pública (ex.: `https://docs.google.com/spreadsheets/d/1UQK.../gviz/tq?tqx=out:json&gid=0`).
+3. Abra `index.html` via um servidor local (recomendado) ou abra diretamente no navegador e verifique o carregamento.
 
-Mapeamento de campos (implementado)
-- id: `id` (ou índice+1 se ausente)
-- title: `title` ou `produto`
-- price: `price` ou `preço` (convertido para float)
-- originalPrice: `originalPrice` ou `preço_original` (convertido para float)
-- store: `store` ou `loja`
-- category: `category` ou `categoria` (baixado para lowercase)
-- image: `image` ou `imagem`
-- affiliateLink: `affiliateLink` ou `link`
-- discount: `discount` ou `desconto` (convertido para int)
+Testes e verificação
+- Abra DevTools → Network: confirme GET para `SHEET_URL` e que retorna 200.
+- Console: verifique ausência de erros (CORS, JSON parse, etc.).
+- Caso use CSV, confirme que cabeçalhos são simples (sem aspas/vírgulas internas) ou prefira o endpoint gviz para evitar parsing CSV complicado.
 
-Testes e validação
-- Abra a página `index.html` no navegador (serve via HTTP idealmente) e verifique se os produtos aparecem.
-- Use o DevTools (Console / Network) para checar a requisição ao endpoint e possíveis erros (CORS, 404, JSON inválido).
-- Exemplo de teste curl:
-  curl -s "https://sheetdb.io/api/v1/i0izzxhea9kft" | jq '.[0]'
+Observações técnicas
+- CORS: o endpoint público do Google Sheets via gviz normalmente permite leitura do navegador quando a planilha está pública.
+- CSV: o parser implementado é simples e não lida com campos entre aspas contendo vírgulas; para segurança use gviz JSON ou um parser CSV robusto.
+- Sanitização e segurança: mantenha atenção a possíveis conteúdos HTML/JS vindos da planilha; considere escapar ao renderizar.
 
-Observações técnicas e recomendações
-- CORS: o endpoint do SheetDB normalmente permite requisições browser (CORS), mas se a planilha estiver protegida ou a API exigir autenticação, será necessário ajustar (keys ou backend proxy).
-- Sanitização: os dados vindos da planilha não são sanitizados — se os campos puderem conter HTML/JS, considere escapar ao renderizar para evitar XSS.
-- Performance: se a planilha crescer muito é recomendável paginar ou cachear a resposta.
-- Erros: o código já faz try/catch e loga erros no console; pode-se melhorar com mensagens visíveis ao usuário.
+Onde ver as alterações
+- `script.js` (alterado): agora contém `SHEET_URL`, `parseGviz`, `parseCSV`, `mapSheetItem` e ajustes de filtro.
 
-Possíveis melhorias futuras
-- Adicionar botão "Atualizar produtos" para forçar novo fetch.
-- Implementar cache em localStorage e intervalo de atualização automática.
-- Validar e normalizar lojas/categorias (mapa de nomes) para filtros mais consistentes.
-- Adicionar suporte a imagens relativas ou hospedadas em CDN com verificação de existência.
-
-Como ajustar mapeamento de colunas
-- Abra `script.js` e edite as chaves dentro de `data.map(...)` na função `fetchProductsFromSheet()`.
-- Se sua planilha tiver cabeçalhos diferentes, adicione os nomes usados no mapeamento, por exemplo: `item.nome_do_produto`.
-
-Local do arquivo de relatório
-- [sheetdb_integration_report.txt](sheetdb_integration_report.txt)
+Exemplo de validação rápida (no console ou terminal):
+curl -s "https://docs.google.com/spreadsheets/d/1UQKdwVzx5FQDiNB60wq0Pasj0oZUHeSzdOb0m1CaSWE/gviz/tq?tqx=out:json&gid=0" | head -n 1
 
 Próximos passos sugeridos
-- Verificar os nomes exatos das colunas na planilha e testar a página no navegador.
-- Deseja que eu adicione um botão "Atualizar" e o tratamento de erros visível ao usuário? Caso sim, implemento agora.
+- Testar abrindo a página e confirmar produtos carregam corretamente.
+- Se quiser, eu adiciono um botão "Atualizar" e mensagens de erro visíveis ao usuário.
+
+Arquivo atualizado: [sheetdb_integration_report.txt](lojaCE/Coite-Express-main/sheetdb_integration_report.txt)
 
 Fim do relatório.

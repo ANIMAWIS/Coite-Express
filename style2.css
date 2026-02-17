@@ -164,6 +164,21 @@ main {
     box-shadow: 0 5px 15px rgba(0,0,0,0.1);
 }
 
+/* Stock display and disabled buy button */
+.product-stock {
+    margin-top: 0.5rem;
+    font-size: 0.95rem;
+    color: #2c3e50;
+    font-weight: 600;
+}
+.buy-button.disabled {
+    background-color: #ccc;
+    color: #666;
+    cursor: not-allowed;
+    border: 1px solid #bbb;
+}
+.buy-button.disabled i { color: #999; }
+
 .product-image {
     width: 100%;
     height: 200px;
@@ -330,6 +345,24 @@ footer {
     cursor: pointer;
 }
 
+.hamburguer {
+    color: #000; /* controls SVG stroke via currentColor */
+    background: transparent;
+}
+.hamburguer:focus {
+    outline: 2px solid rgba(0,0,0,0.12);
+    outline-offset: 3px;
+}
+
+/* Ensure both english and portuguese classnames use black bars and transparent button */
+.hamburger, .hamburguer {
+    background: none;
+    border: none;
+}
+.hamburger span, .hamburguer .bar {
+    background-color: #000 !important;
+}
+
 @media (max-width: 768px) {
     nav .nav-links{
         flex-direction: column;
@@ -355,6 +388,24 @@ footer {
         flex-direction: row-;
 
         
+    }
+
+    /* New SVG-based hamburger styles */
+    .hamburguer svg { display: block; }
+    .hamburguer svg .line {
+        transition: transform 0.3s ease, opacity 0.2s ease;
+        transform-origin: 50% 50%;
+    }
+    /* Active state: morph lines into an X */
+    .hamburguer.active svg .line1 {
+        transform: translateY(6px) rotate(45deg);
+    }
+    .hamburguer.active svg .line2 {
+        opacity: 0;
+        transform: scaleX(0);
+    }
+    .hamburguer.active svg .line3 {
+        transform: translateY(-6px) rotate(-45deg);
     }
     
 
@@ -416,50 +467,28 @@ footer {
         padding: 10px 0;
     }
 
+    /* Navigation links (desktop) */
     .nav-links {
-    display:flex;
-    gap: 1.5rem;
-    text-decoration: none;
-    padding: 0px;
-    border-radius: 45px;
-    color: #f31111;
-    background-color: black;
-    margin: 15px;
-    flex-direction: row;
-    flex-wrap: wrap;
-}
-.nav-links a {
-  text-decoration: none;
-    padding: 20px;
-    border-radius: 45px;
-    color: #f31111;
-    background-color: black;   
-}
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        padding: 0;
+        margin: 0 1rem;
+        list-style: none;
+        background: transparent;
+    }
 
-.nav-links a:hover {
-    background-color: #f31111;
-    color: white;
-}
-}
-.nav-links {
-    display:flex;
-    gap: 1.5rem;
-    text-decoration: none;
-    padding: 0px;
-    border-radius: 45px;
-    color: #f31111;
-    background-color: black;
-    margin: 15px;
-}
-.nav-links a {
-  text-decoration: none;
-    padding: 20px;
-    border-radius: 45px;
-    color: #f31111;
-    background-color: black;   
-}
+    .nav-links a {
+        text-decoration: none;
+        padding: 8px 12px;
+        border-radius: 8px;
+        color: var(--primary-color);
+        background: transparent;
+        transition: background-color 0.18s ease, color 0.18s ease;
+    }
 
-.nav-links a:hover {
-    background-color: #f31111;
-    color: white;
-}
+    .nav-links a:hover {
+        background-color: var(--primary-color);
+        color: white;
+    }
+

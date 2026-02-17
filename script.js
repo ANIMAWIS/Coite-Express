@@ -45,6 +45,15 @@ function mapSheetItem(item, index) {
     const rawPrice = get('price', 'preço', 'preco', 'valor');
     const rawOriginal = get('originalprice', 'preço_original', 'preco_original', 'precooriginal');
     const discountRaw = get('discount', 'desconto');
+    const availableRaw = get('disponible', 'disponivel', 'available', 'disponibilidade');
+    const stockRaw = get('stock', 'estoque', 'quantidade');
+
+    const normalizeBool = (v) => {
+        if (v === null || v === undefined) return true;
+        const s = String(v).trim().toLowerCase();
+        if (s === '') return true;
+        return ['1','true','yes','sim','y','available','disponible'].includes(s);
+    };
 
     return {
         id: get('id') || index + 1,
@@ -55,7 +64,9 @@ function mapSheetItem(item, index) {
         category: (get('category', 'categoria') || 'geral').toLowerCase(),
         image: get('image', 'imagem') || 'https://via.placeholder.com/300',
         affiliateLink: get('affiliateLink', 'link', 'url') || '#',
-        discount: parseInt(discountRaw) || 0
+        discount: parseInt(discountRaw) || 0,
+        disponible: normalizeBool(availableRaw),
+        stock: parseInt(stockRaw) || 0
     };
 }
 
@@ -100,9 +111,25 @@ function renderProducts(productsToRender = products) {
 
     setTimeout(() => { // Simulando tempo de carregamento para demonstração
         productsToRender.forEach(product => {
+            const availabilityLabel = (!product.disponible || product.stock <= 0) ? 'Indisponível' : `Em estoque: ${product.stock}`;
+            const badge = product.discount ? `<div class="discount-badge">-${product.discount}%</div>` : '';
+            const stockInfo = `<p class="product-stock">${availabilityLabel}</p>`;
+
+            const action = (product.disponible && product.stock > 0) ? `
+                <a href="${product.affiliateLink}" target="_blank" class="buy-button">
+                    <i class="fas fa-shopping-cart"></i>
+                    Comprar agora
+                </a>
+            ` : `
+                <button class="buy-button disabled" disabled>
+                    <i class="fas fa-ban"></i>
+                    Indisponível
+                </button>
+            `;
+
             const productCard = `
                 <div class="product-card">
-                    ${product.discount ? `<div class="discount-badge">-${product.discount}%</div>` : ''}
+                    ${badge}
                     <img src="${product.image}" alt="${product.title}" class="product-image">
                     <div class="product-info">
                         <h3 class="product-title">${product.title}</h3>
@@ -114,10 +141,8 @@ function renderProducts(productsToRender = products) {
                             <i class="fas fa-store"></i>
                             ${product.store}
                         </p>
-                        <a href="${product.affiliateLink}" target="_blank" class="buy-button">
-                            <i class="fas fa-shopping-cart"></i>
-                            Comprar agora
-                        </a>
+                        ${stockInfo}
+                        ${action}
                     </div>
                 </div>
             `;
@@ -262,7 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Seleciona o botão e o menu
 const hamburgerToggle = document.getElementById('hamburger-Toggle');
-const navLinks = document.getElementById('nav-Links');
+const navLinks = document.getElementById('nav-links');
 
 // Adiciona um listener de evento de clique ao botão
 hamburgerToggle.addEventListener('click', () => {
@@ -275,5 +300,8 @@ hamburgerToggle.addEventListener('click', () => {
 
     // Alterna a classe 'active' no botão e no menu
     hamburgerToggle.classList.toggle('active');
+    // Update accessible state
+    const expanded = hamburgerToggle.classList.contains('active');
+    hamburgerToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
     navLinks.classList.toggle('active');
 });
