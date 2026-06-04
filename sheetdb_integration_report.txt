@@ -1,0 +1,41 @@
+Relatório: substituição de SheetDB por fetch direto da planilha pública
+Data: 01/01/2026
+
+Resumo das mudanças
+- Removida dependência do endpoint SheetDB; agora o `script.js` suporta fetch direto de uma planilha pública Google Sheets (via endpoint gviz JSON) ou CSV público.
+- Adicionado `SHEET_URL` (constante) apontando para o endpoint gviz: `https://docs.google.com/spreadsheets/d/<ID>/gviz/tq?tqx=out:json&gid=0`.
+
+Principais alterações em `script.js`
+- Adicionadas funções `parseGviz(text)` e `parseCSV(text)` para interpretar respostas do Google Sheets (gviz JSON) ou CSV publicado.
+- Adicionada função `mapSheetItem(item, index)` que normaliza campos da planilha para o formato usado pela UI (`id`, `title`, `price`, `originalPrice`, `store`, `category`, `image`, `affiliateLink`, `discount`).
+- Ajuste nos filtros: seleção de checkboxes para `Lojas` e `Categoria` foi tornada mais precisa e o valor `todas` é tratado como sem filtro.
+- Corrigido `console.error` quando `SHEET_URL` não está definida.
+
+Como usar
+1. Publique sua planilha como pública (ou use a opção "Publicar na web" → CSV, ou use o endpoint gviz JSON como acima).
+2. No arquivo `script.js`, ajuste a constante `SHEET_URL` para a URL pública (ex.: `https://docs.google.com/spreadsheets/d/1UQK.../gviz/tq?tqx=out:json&gid=0`).
+3. Abra `index.html` via um servidor local (recomendado) ou abra diretamente no navegador e verifique o carregamento.
+
+Testes e verificação
+- Abra DevTools → Network: confirme GET para `SHEET_URL` e que retorna 200.
+- Console: verifique ausência de erros (CORS, JSON parse, etc.).
+- Caso use CSV, confirme que cabeçalhos são simples (sem aspas/vírgulas internas) ou prefira o endpoint gviz para evitar parsing CSV complicado.
+
+Observações técnicas
+- CORS: o endpoint público do Google Sheets via gviz normalmente permite leitura do navegador quando a planilha está pública.
+- CSV: o parser implementado é simples e não lida com campos entre aspas contendo vírgulas; para segurança use gviz JSON ou um parser CSV robusto.
+- Sanitização e segurança: mantenha atenção a possíveis conteúdos HTML/JS vindos da planilha; considere escapar ao renderizar.
+
+Onde ver as alterações
+- `script.js` (alterado): agora contém `SHEET_URL`, `parseGviz`, `parseCSV`, `mapSheetItem` e ajustes de filtro.
+
+Exemplo de validação rápida (no console ou terminal):
+curl -s "https://docs.google.com/spreadsheets/d/1UQKdwVzx5FQDiNB60wq0Pasj0oZUHeSzdOb0m1CaSWE/gviz/tq?tqx=out:json&gid=0" | head -n 1
+
+Próximos passos sugeridos
+- Testar abrindo a página e confirmar produtos carregam corretamente.
+- Se quiser, eu adiciono um botão "Atualizar" e mensagens de erro visíveis ao usuário.
+
+Arquivo atualizado: [sheetdb_integration_report.txt](lojaCE/Coite-Express-main/sheetdb_integration_report.txt)
+
+Fim do relatório.

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coité Express - As Melhores Ofertas Da cidade</title>
+    <link rel="stylesheet" href="style2.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <nav class="main-nav">
+            <div class="nav-brand">
+                <a href="#" class="logo-link">
+                    <img src="ce.jpg" width="58" height="58" alt="Logo Coité Express" class="logo-image">
+                    <span class="brand-name">Coité Express</span>
+                </a>
+            </div>
+
+            <button class="hamburger" id="hamburger-toggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="nav-links">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+
+            <div class="nav-links" id="nav-links">
+                <ul>
+                    <li><a href="#">Venda</a></li>
+                    <li><a href="#">Ofertas</a></li>
+                    <li><a href="#">Lojas</a></li>
+                    <li><a href="#">Transport</a></li>
+                </ul>
+            </div>
+
+            <div class="search-bar">
+                <div class="search-input-wrapper">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="search" placeholder="Buscar produtos...">
+                </div>
+            </div>
+
+            <div class="user-actions" id="user-actions">
+                <button class="secondary-button" id="login-button">Entrar</button>
+                <button class="secondary-button" id="register-button">Cadastrar</button>
+                <div class="profile-menu hidden" id="profile-menu">
+                    <span id="user-name">Olá, usuário</span>
+                    <button class="secondary-button" id="favorites-button"><i class="fas fa-heart"></i> Favoritos (<span id="favorite-count">0</span>)</button>
+                    <button class="secondary-button" id="logout-button">Sair</button>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="auth-modal hidden" id="auth-modal">
+        <div class="auth-dialog">
+            <button class="auth-close" id="auth-close" aria-label="Fechar formulário"><i class="fas fa-times"></i></button>
+            <h2 id="auth-title">Entrar na sua conta</h2>
+            <form id="auth-form">
+                <div class="form-group">
+                    <label for="auth-username">Usuário</label>
+                    <input type="text" id="auth-username" autocomplete="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="auth-password">Senha</label>
+                    <input type="password" id="auth-password" autocomplete="current-password" required>
+                </div>
+                <button type="submit" class="primary-button" id="auth-submit">Entrar</button>
+                <p class="auth-switch-text" id="auth-switch-text">Não tem conta? <button type="button" class="link-button" id="switch-to-register">Cadastre-se</button></p>
+                <p class="auth-message" id="auth-message"></p>
+            </form>
+        </div>
+    </div>
+
+    <div class="controls-bar">
+        <button id="filter-toggle" class="filter-toggle">
+            <i class="fas fa-filter"></i> Filtros
+        </button>
+        <div class="sort-container">
+            <label for="sort-select">Ordenar por:</label>
+            <select id="sort-select">
+                <option value="relevance">Relevância</option>
+                <option value="price-asc">Menor Preço</option>
+                <option value="price-desc">Maior Preço</option>
+                <option value="discount">Maior Desconto</option>
+            </select>
+        </div>
+    </div>
+
+    <section class="user-dashboard hidden" id="user-dashboard">
+        <div class="user-dashboard-header">
+            <div>
+                <h2>Minha Conta</h2>
+                <p id="dashboard-welcome">Veja seus favoritos e gerencie seus produtos salvos.</p>
+            </div>
+            <button class="secondary-button" id="refresh-favorites">Atualizar favoritos</button>
+        </div>
+        <div class="favorites-panel" id="favorites-list">
+            <p class="favorites-empty">Seus favoritos aparecerão aqui quando você salvar algum item.</p>
+        </div>
+    </section>
+
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <main>
+        <aside class="filters" id="filters-panel">
+            <div class="filters-header">
+                <h3>Filtros</h3>
+                <button class="close-filters" id="close-filters">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="filter-section">
+                <h4>Lojas</h4>
+                <div class="filter-options">
+                    <label><input type="checkbox" value="todas"> Todas</label>
+                    <label><input type="checkbox" value="amazon"> AJ</label>
+                    <label><input type="checkbox" value="americanas"> CE</label>
+                    
+                </div>
+            </div>
+            <div class="filter-section">
+                <h4>Categoria</h4>
+                <div class="filter-options">
+                    <label><input type="checkbox" value="eletronicos"> Eletrônicos</label>
+                    <label><input type="checkbox" value="casa"> Casa</label>
+                    <label><input type="checkbox" value="moda"> Moda</label>
+                    <label><input type="checkbox" value="beleza"> Beleza</label>
+                </div>
+            </div>
+            <div class="filter-section">
+                <h4>Faixa de Preço</h4>
+                <div class="filter-options">
+                    <label><input type="radio" name="price" value="0-50"> Até R$ 50</label>
+                    <label><input type="radio" name="price" value="50-100"> R$ 50 - R$ 100</label>
+                    <label><input type="radio" name="price" value="100-200"> R$ 100 - R$ 200</label>
+                    <label><input type="radio" name="price" value="200+"> Acima de R$ 200</label>
+                </div>
+            </div>
+        </aside>
+
+        <section class="products">
+            <div class="products-grid" id="products-container">
+                <!-- Produtos serão inseridos aqui via JavaScript -->
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Coité Express - Desenvolvimento Animawis</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
