@@ -1,0 +1,282 @@
+Projeto: Coité Express
+
+1. Visão geral do projeto
+
+Coité Express é uma aplicação web que exibe produtos buscados a partir de uma planilha online, permite cadastro e login de clientes, e salva favoritos de cada cliente em arquivos XLSX.
+
+O objetivo acadêmico deste relatório é explicar como o projeto está organizado, como funciona cada parte e como recriá-lo do zero.
+
+
+2. Arquitetura do sistema
+
+A arquitetura atual é composta por:
+
+- Front-end em HTML, CSS e JavaScript puro
+- Back-end em Node.js usando Express
+- Armazenamento em arquivos XLSX locais (planilhas Excel)
+- Autenticação com JWT (JSON Web Token)
+- Integração com planilha online para carregar produtos
+
+O projeto funciona em modo full-stack leve: o servidor fornece a interface estática e API para autenticação e favoritos.
+
+
+3. Componentes principais
+
+Arquivos importantes do projeto:
+
+- index.html: interface do cliente, menu, barra de pesquisa, filtros, modal de login/cadastro, painel de usuário e área de produtos.
+- style2.css: estilos visuais da página, incluindo layout responsivo para desktop, tablet e celular.
+- script.js: lógica de frontend para carregar produtos, renderizar cards, autenticação, favoritos, filtros, pesquisa, ordenação e menu mobile.
+- server.js: servidor Node.js com API REST para cadastrar usuário, fazer login, proteger rotas, ler/escrever arquivos XLSX.
+- package.json: dependências do projeto e comando `npm start`.
+- data/users.xlsx: planilha de usuários criada automaticamente pelo servidor.
+- data/favorites.xlsx: planilha de favoritos criada automaticamente pelo servidor.
+
+
+4. Como o projeto funciona
+
+4.1 Front-end
+
+- O `index.html` monta a interface com:
+  - cabeçalho fixo e menu responsivo
+  - área de busca
+  - botões de login/cadastro
+  - painel de favoritos para o usuário logado
+  - filtros laterais e grade de produtos
+
+- O `style2.css` deixa a página responsiva em todas as telas com media queries para 900px, 768px e 650px.
+
+- O `script.js`:
+  - faz requisição para a planilha online (`SHEET_URL`)
+  - parseia dados em JSON ou CSV
+  - normaliza campos de produto
+  - oculta produtos indisponíveis automaticamente
+  - renderiza cards de produto com botão de favorito e compra
+  - implementa pesquisa, filtros, ordenação e painel móvel
+  - controla login/cadastro via modal
+  - salva token JWT em `localStorage`
+  - chama APIs do servidor para criar sessão, buscar perfil e favoritos
+
+4.2 Back-end
+
+- O `server.js` inicia um servidor Express.
+- Ao subir, o servidor garante a existência da pasta `data/` e dos arquivos `users.xlsx` e `favorites.xlsx`.
+- São definidos endpoints:
+  - `GET /api/ping` -> verifica que o servidor está vivo
+  - `POST /api/register` -> cadastrar usuário
+  - `POST /api/login` -> fazer login
+  - `GET /api/profile` -> verificar sessão usando token JWT
+  - `GET /api/favorites` -> listar favoritos do usuário conectado
+  - `POST /api/favorites` -> adicionar favorito para o usuário
+  - `DELETE /api/favorites` -> remover favorito do usuário
+
+- O servidor usa:
+  - `bcryptjs` para hash de senhas
+  - `jsonwebtoken` para criar e verificar tokens
+  - `xlsx` para ler e escrever arquivos XLSX
+
+4.3 Armazenamento em XLSX
+
+- `users.xlsx` mantém os campos:
+  - id
+  - username
+  - passwordHash
+  - createdAt
+
+- `favorites.xlsx` mantém os campos:
+  - id
+  - userId
+  - productId
+  - title
+  - store
+  - price
+  - affiliateLink
+  - addedAt
+
+Os arquivos são criados automaticamente se não existem quando o servidor começa.
+
+
+5. Passo a passo do zero
+
+Este é o roteiro para criar o mesmo projeto a partir de uma pasta vazia.
+
+5.1 Requisitos prévios
+
+- Ter Node.js instalado (versão estável). Use `node -v` e `npm -v`.
+- Editor de código (VS Code, Sublime, etc.).
+
+5.2 Criar a pasta do projeto
+
+1. Crie uma pasta chamada `coite-express`.
+2. Abra essa pasta no editor.
+3. Crie uma subpasta chamada `data`.
+
+5.3 Criar `package.json`
+
+1. No terminal, execute:
+   npm init -y
+
+2. Substitua o conteúdo por:
+{
+  "name": "coite-express",
+  "version": "1.0.0",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.0",
+    "xlsx": "^0.18.5"
+  }
+}
+
+5.4 Instalar dependências
+
+No terminal da pasta do projeto:
+
+   npm install
+
+5.5 Criar `server.js`
+
+Crie o arquivo `server.js` com o código de servidor:
+- importar express, cors, path, fs, crypto, bcryptjs, jsonwebtoken, xlsx
+- configurar porta e pasta `data`
+- inicializar Express (CORS, JSON, arquivos estáticos)
+- criar funções de helpers para ler e escrever XLSX
+- criar `initDataFiles()` e chame no startup
+- criar `authenticateToken` para JWT
+- definir endpoints da API
+- iniciar servidor com `app.listen(PORT)`
+
+5.6 Criar `index.html`
+
+Crie a estrutura HTML:
+- cabeçalho com logo, navegação, busca e botões de usuário
+- modal de login/cadastro
+- controles de filtro e ordenação
+- painel de usuário/logado com favoritos
+- área principal com filtros e produtos
+- rodapé simples
+- incluir `style2.css` e `script.js`
+
+5.7 Criar `style2.css`
+
+Crie estilos:
+- variáveis de cores e reset básico
+- cabeçalho e navegação responsiva
+- cards de produtos e botões
+- modal centralizado
+- filtros laterais e layout de grade
+- estilos de favoritos e painel de usuário
+- media queries para 900px, 768px e 650px
+
+5.8 Criar `script.js`
+
+Crie lógica front-end:
+- definir variáveis de estado global
+- definir `SHEET_URL` da planilha online
+- funções de `parseCSV`, `parseGviz`, `mapSheetItem`
+- função `fetchProductsFromSheet()` para carregar produtos
+- função `renderProducts()` para construir os cards
+- função `filterProducts()` para aplicar filtros
+- função `searchProducts()` para busca
+- funções de autenticação e favoritos:
+  - `getAuthHeaders()`
+  - `loadUserSession()`
+  - `showAuthModal()` / `closeAuthModal()`
+  - `registerUser()` / `loginUser()`
+  - `loadFavorites()`
+  - `addFavorite()` / `removeFavorite()`
+  - `updateAuthUI()` / `updateFavoritesUI()`
+- eventos DOM:
+  - input de pesquisa
+  - seleção de filtro
+  - ordenação
+  - abrir/fechar modal
+  - login/cadastro
+  - logout
+  - adicionar/remover favorito
+  - menu hamburger mobile
+
+5.9 Criar imagem de logo (opcional)
+
+Adicione `ce.jpg` no mesmo diretório ou substitua o `img` por um placeholder.
+
+5.10 Criar `data/users.xlsx` e `data/favorites.xlsx`
+
+O servidor criará automaticamente; basta garantir que a pasta `data` exista.
+
+5.11 Rodar o projeto
+
+No terminal:
+
+   npm start
+
+Abra no navegador:
+
+   http://localhost:3000
+
+5.12 Testar o fluxo
+
+1. Abra o site no navegador.
+2. Clique em Cadastrar.
+3. Cadastre um usuário, depois faça login.
+4. Adicione produtos aos favoritos.
+5. Veja os favoritos no painel do usuário.
+6. Logout, entre novamente para verificar os favoritos persistidos.
+
+
+6. O que aprender com esse projeto
+
+6.1 Front-end
+
+- HTML sem framework
+- CSS responsivo com `flex`, `grid` e media queries
+- interações DOM com JavaScript
+- manipulação de listas e templates
+- integração com API REST
+
+6.2 Back-end
+
+- criação de servidor Express
+- rotas públicas e protegidas
+- autenticação com JWT
+- hashing de senha com bcrypt
+- leitura e escrita de arquivos XLSX
+- uso de CORS para permitir comunicação entre front-end e API
+
+6.3 Conceitos úteis
+
+- separação de responsabilidades (cliente vs servidor)
+- persistência de dados em arquivos
+- fluxo de autenticação com token
+- armazenamento local do token (`localStorage`)
+- desempenho e experiência responsiva
+
+
+7. Dicas para praticar
+
+- Refatore o CSS para usar classes mais semânticas.
+- Troque o armazenamento XLSX por banco de dados SQLite ou MongoDB.
+- Faça o backend com TypeScript.
+- Adicione validação mais forte no cadastro (email, tamanho da senha).
+- Implemente recuperação de senha.
+- Melhore a interface dos favoritos com imagens dos produtos.
+- Adicione paginação e carregamento infinito.
+- Faça testes básicos de API com Postman ou Insomnia.
+- Construa uma versão somente front-end com mock de dados para comparar.
+
+
+8. Observações finais
+
+Este projeto é ideal para aprender como montar uma aplicação web completa com autenticação e persistência leve. Ele combina front-end e back-end, e mostra como estruturar uma aplicação realista com navegação, cadastro, login e favoritos.
+
+O relatório acima tem duas partes:
+- explicação do que já está implementado
+- guia para recriar o projeto passo a passo do zero
+
+Boa prática!

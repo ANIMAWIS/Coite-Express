@@ -9,41 +9,67 @@
 </head>
 <body>
     <header>
-        <nav>
-            <div class="logo">
-                <i class="#"><img src="ce.jpg" width="150px" style="border-radius:100px;" alt="Coité Express Logo"></i>
-                <h2 style="display: none;">Coité Express</h2>
-                
-            </div>
-           
-            
-            <div class="nav-links" id="nav-links">
-                <a href="#">Venda</a>
-                <a href="#">Ofertas</a>
-                <a href="#">Lojas</a>
-                <a href="#">Transport</a>
+        <nav class="main-nav">
+            <div class="nav-brand">
+                <a href="#" class="logo-link">
+                    <img src="ce.jpg" width="58" height="58" alt="Logo Coité Express" class="logo-image">
+                    <span class="brand-name">Coité Express</span>
+                </a>
             </div>
 
-            
+            <button class="hamburger" id="hamburger-toggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="nav-links">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+
+            <div class="nav-links" id="nav-links">
+                <ul>
+                    <li><a href="#">Venda</a></li>
+                    <li><a href="#">Ofertas</a></li>
+                    <li><a href="#">Lojas</a></li>
+                    <li><a href="#">Transport</a></li>
+                </ul>
+            </div>
+
             <div class="search-bar">
                 <div class="search-input-wrapper">
                     <i class="fas fa-search search-icon"></i>
                     <input type="text" id="search" placeholder="Buscar produtos...">
                 </div>
-            <button class="hamburguer" id="hamburger-Toggle" aria-label="Menu" aria-expanded="false">
-                <!-- SVG hamburger that animates to X when button has .active class -->
-                <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" focusable="false">
-                    <g stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none">
-                        <line class="line line1" x1="3" y1="6" x2="21" y2="6"></line>
-                        <line class="line line2" x1="3" y1="12" x2="21" y2="12"></line>
-                        <line class="line line3" x1="3" y1="18" x2="21" y2="18"></line>
-                    </g>
-                </svg>
-            </button>
+            </div>
 
+            <div class="user-actions" id="user-actions">
+                <button class="secondary-button" id="login-button">Entrar</button>
+                <button class="secondary-button" id="register-button">Cadastrar</button>
+                <div class="profile-menu hidden" id="profile-menu">
+                    <span id="user-name">Olá, usuário</span>
+                    <button class="secondary-button" id="favorites-button"><i class="fas fa-heart"></i> Favoritos (<span id="favorite-count">0</span>)</button>
+                    <button class="secondary-button" id="logout-button">Sair</button>
+                </div>
             </div>
         </nav>
     </header>
+
+    <div class="auth-modal hidden" id="auth-modal">
+        <div class="auth-dialog">
+            <button class="auth-close" id="auth-close" aria-label="Fechar formulário"><i class="fas fa-times"></i></button>
+            <h2 id="auth-title">Entrar na sua conta</h2>
+            <form id="auth-form">
+                <div class="form-group">
+                    <label for="auth-username">Usuário</label>
+                    <input type="text" id="auth-username" autocomplete="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="auth-password">Senha</label>
+                    <input type="password" id="auth-password" autocomplete="current-password" required>
+                </div>
+                <button type="submit" class="primary-button" id="auth-submit">Entrar</button>
+                <p class="auth-switch-text" id="auth-switch-text">Não tem conta? <button type="button" class="link-button" id="switch-to-register">Cadastre-se</button></p>
+                <p class="auth-message" id="auth-message"></p>
+            </form>
+        </div>
+    </div>
 
     <div class="controls-bar">
         <button id="filter-toggle" class="filter-toggle">
@@ -59,6 +85,19 @@
             </select>
         </div>
     </div>
+
+    <section class="user-dashboard hidden" id="user-dashboard">
+        <div class="user-dashboard-header">
+            <div>
+                <h2>Minha Conta</h2>
+                <p id="dashboard-welcome">Veja seus favoritos e gerencie seus produtos salvos.</p>
+            </div>
+            <button class="secondary-button" id="refresh-favorites">Atualizar favoritos</button>
+        </div>
+        <div class="favorites-panel" id="favorites-list">
+            <p class="favorites-empty">Seus favoritos aparecerão aqui quando você salvar algum item.</p>
+        </div>
+    </section>
 
     <div id="loading-overlay" class="loading-overlay">
         <div class="loading-spinner"></div>

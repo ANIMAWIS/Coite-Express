@@ -1,5 +1,10 @@
 // Variável para armazenar produtos carregados da planilha
 let products = [];
+let lastRenderedProducts = [];
+let currentUser = null;
+let userFavorites = [];
+
+const API_BASE = '/api';
 
 // Cole aqui a URL pública da sua planilha.
 // Aceita: 1) URL CSV de "Publicar na web" (export?format=csv) ou
@@ -106,24 +111,33 @@ async function fetchProductsFromSheet() {
 function renderProducts(productsToRender = products) {
     const container = document.getElementById('products-container');
     container.innerHTML = '';
+    lastRenderedProducts = productsToRender;
 
     showLoading();
 
-    setTimeout(() => { // Simulando tempo de carregamento para demonstração
-        productsToRender.forEach(product => {
-            const availabilityLabel = (!product.disponible || product.stock <= 0) ? 'Indisponível' : `Em estoque: ${product.stock}`;
-            const badge = product.discount ? `<div class="discount-badge">-${product.discount}%</div>` : '';
-            const stockInfo = `<p class="product-stock">${availabilityLabel}</p>`;
+    const visibleProducts = productsToRender.filter(product => product.disponible && product.stock > 0);
+    const favoriteIds = new Set(userFavorites.map(favorite => String(favorite.productId)));
 
-            const action = (product.disponible && product.stock > 0) ? `
-                <a href="${product.affiliateLink}" target="_blank" class="buy-button">
-                    <i class="fas fa-shopping-cart"></i>
-                    Comprar agora
-                </a>
+    setTimeout(() => { // Simulando tempo de carregamento para demonstração
+        if (visibleProducts.length === 0) {
+            container.innerHTML = '<div class="no-products">Nenhum produto disponível no momento. Ajuste os filtros ou verifique novamente mais tarde.</div>';
+            hideLoading();
+            return;
+        }
+
+        visibleProducts.forEach(product => {
+            const badge = product.discount ? `<div class="discount-badge">-${product.discount}%</div>` : '';
+            const stockInfo = `<p class="product-stock">Em estoque: ${product.stock}</p>`;
+            const isFavorite = currentUser && favoriteIds.has(String(product.id));
+            const favoriteButton = currentUser ? `
+                <button class="favorite-button ${isFavorite ? 'active' : ''}" data-product-id="${product.id}" aria-pressed="${isFavorite}">
+                    <i class="fas fa-heart"></i>
+                    ${isFavorite ? 'Remover favorito' : 'Favoritar'}
+                </button>
             ` : `
-                <button class="buy-button disabled" disabled>
-                    <i class="fas fa-ban"></i>
-                    Indisponível
+                <button class="favorite-button disabled" disabled>
+                    <i class="fas fa-heart"></i>
+                    Entre para favoritar
                 </button>
             `;
 
@@ -142,7 +156,11 @@ function renderProducts(productsToRender = products) {
                             ${product.store}
                         </p>
                         ${stockInfo}
-                        ${action}
+                        ${favoriteButton}
+                        <a href="${product.affiliateLink}" target="_blank" class="buy-button">
+                            <i class="fas fa-shopping-cart"></i>
+                            Comprar agora
+                        </a>
                     </div>
                 </div>
             `;
@@ -151,6 +169,202 @@ function renderProducts(productsToRender = products) {
 
         hideLoading();
     }, 500);
+}
+
+function getAuthHeaders() {
+    const token = localStorage.getItem('coiteAuthToken');
+    return token ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+}
+
+async function loadUserSession() {
+    const token = localStorage.getItem('coiteAuthToken');
+    if (!token) {
+        currentUser = null;
+        userFavorites = [];
+        updateAuthUI();
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}/profile`, { headers: getAuthHeaders() });
+        if (!res.ok) throw new Error('Sessão inválida');
+        currentUser = await res.json();
+        updateAuthUI();
+        await loadFavorites();
+    } catch (err) {
+        localStorage.removeItem('coiteAuthToken');
+        currentUser = null;
+        userFavorites = [];
+        updateAuthUI();
+    }
+}
+
+function showAuthModal(mode) {
+    const authModal = document.getElementById('auth-modal');
+    const authTitle = document.getElementById('auth-title');
+    const authSubmit = document.getElementById('auth-submit');
+    const authSwitchText = document.getElementById('auth-switch-text');
+    const authMessage = document.getElementById('auth-message');
+
+    authModal.classList.remove('hidden');
+    authMessage.textContent = '';
+    authModal.dataset.mode = mode;
+
+    if (mode === 'register') {
+        authTitle.textContent = 'Criar nova conta';
+        authSubmit.textContent = 'Cadastrar';
+        authSwitchText.innerHTML = 'Já tem conta? <button type="button" class="link-button" id="switch-to-login">Entrar</button>';
+    } else {
+        authTitle.textContent = 'Entrar na sua conta';
+        authSubmit.textContent = 'Entrar';
+        authSwitchText.innerHTML = 'Não tem conta? <button type="button" class="link-button" id="switch-to-register">Cadastre-se</button>';
+    }
+}
+
+function closeAuthModal() {
+    document.getElementById('auth-modal').classList.add('hidden');
+}
+
+async function registerUser(username, password) {
+    const res = await fetch(`${API_BASE}/register`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+        throw new Error(data.message || 'Falha no cadastro.');
+    }
+    return data;
+}
+
+async function loginUser(username, password) {
+    const res = await fetch(`${API_BASE}/login`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+        throw new Error(data.message || 'Falha no login.');
+    }
+    localStorage.setItem('coiteAuthToken', data.token);
+    currentUser = data.user;
+    updateAuthUI();
+    await loadFavorites();
+    renderProducts(lastRenderedProducts.length ? lastRenderedProducts : products);
+}
+
+async function loadFavorites() {
+    if (!currentUser) {
+        userFavorites = [];
+        updateFavoritesUI();
+        return;
+    }
+
+    const res = await fetch(`${API_BASE}/favorites`, {
+        method: 'GET',
+        headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+        userFavorites = [];
+        updateFavoritesUI();
+        return;
+    }
+
+    userFavorites = await res.json();
+    updateFavoritesUI();
+}
+
+async function addFavorite(product) {
+    if (!currentUser) return;
+    const res = await fetch(`${API_BASE}/favorites`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+            productId: product.id,
+            title: product.title,
+            store: product.store,
+            price: product.price,
+            affiliateLink: product.affiliateLink
+        })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+        throw new Error(data.message || 'Não foi possível salvar o favorito.');
+    }
+    await loadFavorites();
+    renderProducts(lastRenderedProducts.length ? lastRenderedProducts : products);
+}
+
+async function removeFavorite(productId) {
+    if (!currentUser) return;
+    const res = await fetch(`${API_BASE}/favorites`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ productId })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+        throw new Error(data.message || 'Não foi possível remover o favorito.');
+    }
+    await loadFavorites();
+    renderProducts(lastRenderedProducts.length ? lastRenderedProducts : products);
+}
+
+function updateAuthUI() {
+    const loginButton = document.getElementById('login-button');
+    const registerButton = document.getElementById('register-button');
+    const profileMenu = document.getElementById('profile-menu');
+    const userName = document.getElementById('user-name');
+    const favoriteCount = document.getElementById('favorite-count');
+    const userDashboard = document.getElementById('user-dashboard');
+
+    if (currentUser) {
+        loginButton.classList.add('hidden');
+        registerButton.classList.add('hidden');
+        profileMenu.classList.remove('hidden');
+        userName.textContent = `Olá, ${currentUser.username}`;
+        favoriteCount.textContent = String(userFavorites.length);
+        userDashboard.classList.remove('hidden');
+    } else {
+        loginButton.classList.remove('hidden');
+        registerButton.classList.remove('hidden');
+        profileMenu.classList.add('hidden');
+        userDashboard.classList.add('hidden');
+    }
+}
+
+function updateFavoritesUI() {
+    const favoritesList = document.getElementById('favorites-list');
+    const favoriteCount = document.getElementById('favorite-count');
+    favoritesList.innerHTML = '';
+    favoriteCount.textContent = String(userFavorites.length);
+
+    if (!userFavorites.length) {
+        favoritesList.innerHTML = '<p class="favorites-empty">Seus favoritos aparecerão aqui quando você salvar algum item.</p>';
+        return;
+    }
+
+    userFavorites.forEach(item => {
+        favoritesList.innerHTML += `
+            <div class="favorite-item">
+                <div>
+                    <strong>${item.title}</strong>
+                    <p>${item.store} · R$ ${Number(item.price).toFixed(2)}</p>
+                </div>
+                <button class="favorite-remove-button" data-product-id="${item.productId}">Remover</button>
+            </div>
+        `;
+    });
+}
+
+function setAuthMessage(message, isError = true) {
+    const authMessage = document.getElementById('auth-message');
+    authMessage.textContent = message;
+    authMessage.classList.toggle('error', isError);
 }
 
 // Função para filtrar produtos
@@ -231,50 +445,42 @@ function sortProducts(products, sortType) {
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
-    // Carregar produtos da planilha online
+    loadUserSession();
     fetchProductsFromSheet();
 
-    // Adicionar event listeners para filtros
     const filterInputs = document.querySelectorAll('.filter-options input');
     filterInputs.forEach(input => {
         input.addEventListener('change', filterProducts);
     });
 
-    // Adicionar event listener para pesquisa
     const searchInput = document.getElementById('search');
     let searchTimeout;
     searchInput.addEventListener('input', () => {
         clearTimeout(searchTimeout);
         showLoading();
-        searchTimeout = setTimeout(searchProducts, 300); // Debounce da pesquisa
+        searchTimeout = setTimeout(searchProducts, 300);
     });
 
-    // Adicionar event listener para ordenação
     const sortSelect = document.getElementById('sort-select');
     sortSelect.addEventListener('change', () => {
-        const sortedProducts = sortProducts(
-            products.filter(p => p.title.toLowerCase().includes(searchInput.value.toLowerCase())),
-            sortSelect.value
-        );
+        const filteredProducts = products.filter(p => p.title.toLowerCase().includes(searchInput.value.toLowerCase()));
+        const sortedProducts = sortProducts(filteredProducts, sortSelect.value);
         renderProducts(sortedProducts);
     });
 
-    // Controles do painel de filtros mobile
     const filterToggle = document.getElementById('filter-toggle');
     const filtersPanel = document.getElementById('filters-panel');
     const closeFilters = document.getElementById('close-filters');
-
     filterToggle.addEventListener('click', () => {
         filtersPanel.classList.add('active');
-        document.body.style.overflow = 'hidden'; // Previne rolagem do body
+        document.body.style.overflow = 'hidden';
     });
 
     closeFilters.addEventListener('click', () => {
         filtersPanel.classList.remove('active');
-        document.body.style.overflow = ''; // Restaura rolagem do body
+        document.body.style.overflow = '';
     });
 
-    // Fecha os filtros ao clicar fora em dispositivos móveis
     document.addEventListener('click', (e) => {
         if (window.innerWidth <= 768) {
             if (!filtersPanel.contains(e.target) && !filterToggle.contains(e.target) && filtersPanel.classList.contains('active')) {
@@ -283,25 +489,121 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+
+    const loginButton = document.getElementById('login-button');
+    const registerButton = document.getElementById('register-button');
+    const logoutButton = document.getElementById('logout-button');
+    const favoritesButton = document.getElementById('favorites-button');
+    const refreshFavorites = document.getElementById('refresh-favorites');
+    const authModal = document.getElementById('auth-modal');
+    const authClose = document.getElementById('auth-close');
+    const authForm = document.getElementById('auth-form');
+
+    loginButton.addEventListener('click', () => showAuthModal('login'));
+    registerButton.addEventListener('click', () => showAuthModal('register'));
+    authClose.addEventListener('click', closeAuthModal);
+    authModal.addEventListener('click', (event) => {
+        if (event.target === authModal) {
+            closeAuthModal();
+        }
+    });
+
+    authForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const mode = authModal.dataset.mode || 'login';
+        const username = document.getElementById('auth-username').value.trim();
+        const password = document.getElementById('auth-password').value;
+        setAuthMessage('');
+
+        try {
+            if (mode === 'register') {
+                await registerUser(username, password);
+                setAuthMessage('Cadastro realizado com sucesso! Faça login para continuar.', false);
+                showAuthModal('login');
+            } else {
+                await loginUser(username, password);
+                setAuthMessage('Login realizado com sucesso!', false);
+                closeAuthModal();
+            }
+        } catch (error) {
+            setAuthMessage(error.message || 'Erro ao processar formulário.');
+        }
+    });
+
+    authModal.addEventListener('click', (event) => {
+        if (event.target.matches('#switch-to-register')) {
+            showAuthModal('register');
+        }
+        if (event.target.matches('#switch-to-login')) {
+            showAuthModal('login');
+        }
+    });
+
+    logoutButton.addEventListener('click', () => {
+        localStorage.removeItem('coiteAuthToken');
+        currentUser = null;
+        userFavorites = [];
+        updateAuthUI();
+        renderProducts(lastRenderedProducts.length ? lastRenderedProducts : products);
+    });
+
+    favoritesButton.addEventListener('click', () => {
+        document.getElementById('user-dashboard').scrollIntoView({ behavior: 'smooth' });
+    });
+
+    refreshFavorites.addEventListener('click', async () => {
+        await loadFavorites();
+    });
+
+    const productsContainer = document.getElementById('products-container');
+    productsContainer.addEventListener('click', async (event) => {
+        const button = event.target.closest('.favorite-button');
+        if (!button) return;
+        const productId = button.dataset.productId;
+        const product = products.find(item => String(item.id) === String(productId));
+        if (!product) return;
+
+        try {
+            if (button.classList.contains('active')) {
+                await removeFavorite(productId);
+            } else {
+                await addFavorite(product);
+            }
+        } catch (error) {
+            console.error(error);
+            alert(error.message || 'Erro ao atualizar favorito.');
+        }
+    });
+
+    const favoritesList = document.getElementById('favorites-list');
+    favoritesList.addEventListener('click', async (event) => {
+        const removeButton = event.target.closest('.favorite-remove-button');
+        if (!removeButton) return;
+        const productId = removeButton.dataset.productId;
+        try {
+            await removeFavorite(productId);
+        } catch (error) {
+            console.error(error);
+            alert(error.message || 'Erro ao remover favorito.');
+        }
+    });
 });
 
-// Seleciona o botão e o menu
-const hamburgerToggle = document.getElementById('hamburger-Toggle');
+// Menu responsivo
+const hamburgerToggle = document.getElementById('hamburger-toggle');
 const navLinks = document.getElementById('nav-links');
 
-// Adiciona um listener de evento de clique ao botão
 hamburgerToggle.addEventListener('click', () => {
-    //alterar display em none ou flex do menu hamburguer
-    if (navLinks.style.display === 'none' || navLinks.style.display === '') {
-        navLinks.style.display = 'flex';
-    } else {
-        navLinks.style.display = 'none';
-    }
-
-    // Alterna a classe 'active' no botão e no menu
-    hamburgerToggle.classList.toggle('active');
-    // Update accessible state
-    const expanded = hamburgerToggle.classList.contains('active');
-    hamburgerToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    const isExpanded = hamburgerToggle.classList.toggle('active');
     navLinks.classList.toggle('active');
+    hamburgerToggle.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+});
+
+// Fecha o menu mobile ao clicar em um link
+navLinks.addEventListener('click', (event) => {
+    if (event.target.tagName === 'A' && navLinks.classList.contains('active')) {
+        hamburgerToggle.classList.remove('active');
+        navLinks.classList.remove('active');
+        hamburgerToggle.setAttribute('aria-expanded', 'false');
+    }
 });
